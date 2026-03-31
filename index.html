@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Yo-Gi-Oh</title>
+  <style>
+    :root {
+      --primary: #1a73e8;
+      --primary-soft: #e8f0fe;
+      --bg: #f5f7fb;
+      --surface: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #dbe3ef;
+      --danger: #d93025;
+      --shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --radius-sm: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(180deg, #eef4ff 0%, var(--bg) 220px);
+      color: var(--text);
+    }
+
+    .app {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .chat-shell {
+      width: min(100%, 980px);
+      height: calc(100vh - 48px);
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.84);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand {
+      flex: 1 1 220px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .chat-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 22px 160px;
+      scroll-behavior: smooth;
+    }
+
+    .message-row {
+      display: flex;
+      gap: 12px;
+      margin: 0 auto 18px;
+      max-width: 860px;
+      align-items: flex-start;
+    }
+
+    .message-row.user {
+      flex-direction: row-reverse;
+    }
+
+    .avatar {
+      width: 40px;
+      height: 40px;
+      flex-shrink: 0;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(135deg, #5b9cff, var(--primary));
+      box-shadow: 0 8px 20px rgba(26, 115, 232, 0.18);
+    }
+
+    .message-row.user .avatar {
+      background: linear-gradient(135deg, #7d8bff, #5865f2);
+      box-shadow: 0 8px 20px rgba(88, 101, 242, 0.18);
+    }
+
+    .message-bubble {
+      max-width: min(78%, 700px);
+      padding: 15px 18px;
+      border-radius: var(--radius-md);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      box-shadow: 0 10px 22px rgba(15, 23, 42, 0.04);
+      line-height: 1.75;
+      word-break: break-word;
+      white-space: normal;
+    }
+
+    .message-row.user .message-bubble {
+      background: var(--primary);
+      color: #fff;
+      border-color: transparent;
+      border-bottom-right-radius: 6px;
+    }
+
+    .message-row.assistant .message-bubble {
+      border-bottom-left-radius: 6px;
+    }
+
+    .message-meta {
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .message-row.user .message-meta {
+      color: rgba(255, 255, 255, 0.78);
+    }
+
+    .markdown p {
+      margin: 0 0 10px;
+    }
+
+    .markdown p:last-child {
+      margin-bottom: 0;
+    }
+
+    .markdown strong {
+      font-weight: 700;
+    }
+
+    .markdown code {
+      font-family: "Cascadia Code", "Consolas", monospace;
+      font-size: 0.92em;
+      background: rgba(15, 23, 42, 0.08);
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+
+    .message-row.user .markdown code {
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    .markdown pre {
+      margin: 12px 0;
+      padding: 14px;
+      border-radius: 14px;
+      background: #111827;
+      color: #e5eefc;
+      overflow-x: auto;
+    }
+
+    .markdown pre code {
+      background: transparent;
+      padding: 0;
+      color: inherit;
+    }
+
+    .markdown ul {
+      padding-left: 22px;
+      margin: 10px 0;
+    }
+
+    .markdown blockquote {
+      margin: 10px 0;
+      padding-left: 14px;
+      border-left: 3px solid rgba(26, 115, 232, 0.35);
+      color: var(--muted);
+    }
+
+    .typing::after {
+      content: "";
+      display: inline-block;
+      width: 8px;
+      height: 1em;
+      margin-left: 2px;
+      vertical-align: -2px;
+      background: currentColor;
+      animation: blink 0.9s steps(1) infinite;
+      opacity: 0.8;
+    }
+
+    @keyframes blink {
+      50% {
+        opacity: 0;
+      }
+    }
+
+    .loading-dots {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      min-height: 24px;
+    }
+
+    .loading-dots span {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--primary);
+      animation: pulse 1.2s infinite ease-in-out;
+    }
+
+    .loading-dots span:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .loading-dots span:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes pulse {
+      0%, 80%, 100% {
+        transform: scale(0.6);
+        opacity: 0.5;
+      }
+      40% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .composer-wrap {
+      position: sticky;
+      bottom: 0;
+      padding: 16px 22px 22px;
+      background: linear-gradient(180deg, rgba(245, 247, 251, 0) 0%, rgba(245, 247, 251, 0.88) 22%, rgba(245, 247, 251, 0.98) 100%);
+      backdrop-filter: blur(10px);
+    }
+
+    .composer {
+      max-width: 860px;
+      margin: 0 auto;
+      background: #fff;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      border-radius: 22px;
+      padding: 14px;
+    }
+
+    .composer textarea {
+      width: 100%;
+      min-height: 72px;
+      max-height: 180px;
+      border: none;
+      resize: none;
+      outline: none;
+      font: inherit;
+      color: var(--text);
+      background: transparent;
+      line-height: 1.6;
+    }
+
+    .composer-actions {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .primary-btn {
+      min-width: 112px;
+      height: 44px;
+      border: none;
+      border-radius: 999px;
+      padding: 0 18px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease;
+      box-shadow: 0 12px 24px rgba(26, 115, 232, 0.22);
+    }
+
+    .primary-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+
+    .primary-btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+      transform: none;
+      box-shadow: none;
+    }
+
+    @media (max-width: 768px) {
+      .app {
+        padding: 0;
+      }
+
+      .chat-shell {
+        height: 100vh;
+        border-radius: 0;
+      }
+
+      .topbar,
+      .chat-container,
+      .composer-wrap {
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+
+      .message-bubble {
+        max-width: calc(100% - 52px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="chat-shell">
+      <header class="topbar">
+        <div class="brand">
+          <h1>Yo-Gi-Oh</h1>
+        </div>
+      </header>
+
+      <main id="chatContainer" class="chat-container"></main>
+
+      <div class="composer-wrap">
+        <div class="composer">
+          <textarea id="messageInput" placeholder="输入消息，按 Enter 发送..." spellcheck="false"></textarea>
+          <div class="composer-actions">
+            <button id="sendBtn" class="primary-btn" type="button">发送</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const CHAT_API_URL = "/api/chat-messages";
+    const USER_ID = "user-001";
+    const STORAGE_KEYS = {
+      conversationId: "dify-chat-conversation-id"
+    };
+
+    const chatContainer = document.getElementById("chatContainer");
+    const messageInput = document.getElementById("messageInput");
+    const sendBtn = document.getElementById("sendBtn");
+
+    let conversationId = localStorage.getItem(STORAGE_KEYS.conversationId) || "";
+    let isSending = false;
+
+    init();
+
+    function init() {
+      sendBtn.addEventListener("click", sendMessage);
+
+      messageInput.addEventListener("input", autoResizeTextarea);
+      messageInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          sendMessage();
+        }
+      });
+
+      autoResizeTextarea();
+    }
+
+    function autoResizeTextarea() {
+      messageInput.style.height = "auto";
+      messageInput.style.height = Math.min(messageInput.scrollHeight, 180) + "px";
+    }
+
+    function createMessageRow(role, initialText, options = {}) {
+      const row = document.createElement("div");
+      row.className = "message-row " + role;
+
+      const avatar = document.createElement("div");
+      avatar.className = "avatar";
+      avatar.textContent = role === "user" ? "U" : "AI";
+
+      const bubble = document.createElement("div");
+      bubble.className = "message-bubble";
+
+      const content = document.createElement("div");
+      content.className = "markdown";
+      content.innerHTML = renderMarkdown(initialText || "");
+
+      const meta = document.createElement("div");
+      meta.className = "message-meta";
+      meta.textContent = options.meta || formatTime(new Date());
+
+      bubble.appendChild(content);
+      bubble.appendChild(meta);
+      row.appendChild(avatar);
+      row.appendChild(bubble);
+      chatContainer.appendChild(row);
+      scrollToBottom();
+
+      return { row, bubble, content, meta };
+    }
+
+    function createLoadingMessage() {
+      const instance = createMessageRow("assistant", "");
+      instance.content.innerHTML = [
+        "<span>正在思考...</span>",
+        '<span class="loading-dots" aria-label="loading"><span></span><span></span><span></span></span>'
+      ].join(" ");
+      return instance;
+    }
+
+    async function sendMessage() {
+      if (isSending) {
+        return;
+      }
+
+      const text = messageInput.value.trim();
+
+      if (!text) {
+        messageInput.focus();
+        return;
+      }
+
+      createMessageRow("user", text);
+
+      messageInput.value = "";
+      autoResizeTextarea();
+      isSending = true;
+      toggleComposerState(true);
+
+      const loadingMessage = createLoadingMessage();
+
+      try {
+        await streamChatMessage({
+          query: text,
+          assistantMessage: loadingMessage
+        });
+      } catch (error) {
+        loadingMessage.content.innerHTML = renderMarkdown("网络请求失败，请稍后重试。\n\n" + (error.message || "未知错误"));
+        loadingMessage.content.classList.remove("typing");
+      } finally {
+        isSending = false;
+        toggleComposerState(false);
+      }
+    }
+
+    function toggleComposerState(disabled) {
+      sendBtn.disabled = disabled;
+      messageInput.disabled = disabled;
+    }
+
+    async function streamChatMessage({ query, assistantMessage }) {
+      // 通过 fetch + ReadableStream 解析 Dify 返回的 SSE 数据流。
+      const response = await fetch(CHAT_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          inputs: {},
+          query,
+          response_mode: "streaming",
+          conversation_id: conversationId,
+          user: USER_ID
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(extractErrorMessage(errorText, response.status));
+      }
+
+      if (!response.body) {
+        throw new Error("当前浏览器不支持流式响应。");
+      }
+
+      let fullAnswer = "";
+      let streamBuffer = "";
+      const decoder = new TextDecoder("utf-8");
+      const reader = response.body.getReader();
+
+      assistantMessage.content.classList.add("typing");
+      assistantMessage.content.innerHTML = renderMarkdown("");
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) {
+          break;
+        }
+
+        streamBuffer += decoder.decode(value, { stream: true });
+        const events = streamBuffer.split("\n\n");
+        streamBuffer = events.pop() || "";
+
+        for (const rawEvent of events) {
+          const parsedData = parseSseBlock(rawEvent);
+          if (!parsedData) {
+            continue;
+          }
+
+          let payload;
+          try {
+            payload = JSON.parse(parsedData);
+          } catch (error) {
+            continue;
+          }
+
+          // 记录并更新 conversation_id，用于后续多轮上下文。
+          if (payload.conversation_id) {
+            conversationId = payload.conversation_id;
+            localStorage.setItem(STORAGE_KEYS.conversationId, conversationId);
+          }
+
+          if (payload.event === "message" || payload.event === "agent_message") {
+            fullAnswer += payload.answer || "";
+            assistantMessage.content.innerHTML = renderMarkdown(fullAnswer);
+            scrollToBottom();
+          } else if (payload.event === "message_replace") {
+            fullAnswer = payload.answer || "";
+            assistantMessage.content.innerHTML = renderMarkdown(fullAnswer);
+            scrollToBottom();
+          } else if (payload.event === "error") {
+            throw new Error(payload.message || "服务返回异常。");
+          } else if (payload.event === "message_end") {
+            assistantMessage.meta.textContent = formatTime(new Date());
+            if (!fullAnswer) {
+              assistantMessage.content.innerHTML = renderMarkdown("本次回复为空。");
+            }
+          }
+        }
+      }
+
+      assistantMessage.content.classList.remove("typing");
+      assistantMessage.content.innerHTML = renderMarkdown(fullAnswer || "本次回复为空。");
+      scrollToBottom();
+    }
+
+    function parseSseBlock(block) {
+      const lines = block.split("\n");
+      const dataLines = [];
+
+      for (const line of lines) {
+        if (line.startsWith("data:")) {
+          dataLines.push(line.slice(5).trim());
+        }
+      }
+
+      if (!dataLines.length) {
+        return "";
+      }
+
+      const joined = dataLines.join("\n");
+      return joined === "[DONE]" ? "" : joined;
+    }
+
+    function extractErrorMessage(rawText, status) {
+      try {
+        const parsed = JSON.parse(rawText);
+        return parsed.message || parsed.error || ("接口请求失败，状态码：" + status);
+      } catch (error) {
+        return rawText || ("接口请求失败，状态码：" + status);
+      }
+    }
+
+    function renderMarkdown(source) {
+      if (!source) {
+        return "<p></p>";
+      }
+
+      const codeBlocks = [];
+      const inlineCodes = [];
+
+      let text = escapeHtml(source);
+
+      // 先提取代码块，避免后续段落和列表处理破坏结构。
+      text = text.replace(/```([\w-]*)\n?([\s\S]*?)```/g, (_, language, code) => {
+        const langLabel = language ? " class=\"language-" + language + "\"" : "";
+        const placeholder = "%%CODEBLOCK_" + codeBlocks.length + "%%";
+        codeBlocks.push("<pre><code" + langLabel + ">" + code.replace(/^\n+|\n+$/g, "") + "</code></pre>");
+        return placeholder;
+      });
+
+      // 提取行内代码，避免被加粗或段落规则影响。
+      text = text.replace(/`([^`\n]+)`/g, (_, code) => {
+        const placeholder = "%%INLINECODE_" + inlineCodes.length + "%%";
+        inlineCodes.push("<code>" + code + "</code>");
+        return placeholder;
+      });
+
+      text = text.replace(/^> (.*)$/gm, "<blockquote>$1</blockquote>");
+      text = text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+      text = text.replace(/(?:^|\n)- (.+)(?=\n|$)/g, (_, item) => "\n<ul><li>" + item + "</li></ul>");
+      text = text.replace(/<\/ul>\s*<ul>/g, "");
+
+      const paragraphs = text
+        .split(/\n{2,}/)
+        .map((block) => {
+          if (!block.trim()) {
+            return "";
+          }
+
+          if (block.startsWith("<pre>") || block.startsWith("<ul>") || block.startsWith("<blockquote>")) {
+            return block;
+          }
+
+          return "<p>" + block.replace(/\n/g, "<br>") + "</p>";
+        })
+        .join("");
+
+      text = paragraphs;
+
+      codeBlocks.forEach((block, index) => {
+        text = text.replace("%%CODEBLOCK_" + index + "%%", block);
+      });
+
+      inlineCodes.forEach((block, index) => {
+        text = text.replace("%%INLINECODE_" + index + "%%", block);
+      });
+
+      return text;
+    }
+
+    function escapeHtml(value) {
+      return value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function formatTime(date) {
+      return date.toLocaleTimeString("zh-CN", {
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    }
+
+    function scrollToBottom() {
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+  </script>
+</body>
+</html>
